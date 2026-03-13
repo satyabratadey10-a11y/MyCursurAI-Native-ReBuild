@@ -1,0 +1,375 @@
+# CHECKSUM-LINES: 375
+# CHECKSUM-MARKERS: 0 heredocs used - python3 method immune to close-token corruption
+# VERIFY: line count of this file must equal 375
+
+name: MyCursurAI Native ReBuild Part1
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Gradle 8.6
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.6'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept SDK licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Install SDK packages
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+
+      - name: Create project directories
+        run: |
+          mkdir -p MyCursurAI-Native/app/src/main/java/com/mycursurai/chat
+          mkdir -p MyCursurAI-Native/app/src/main/res/layout
+          mkdir -p MyCursurAI-Native/app/src/main/res/values
+          mkdir -p MyCursurAI-Native/gradle/wrapper
+
+      - name: Write settings.gradle
+        run: |
+          python3 - <<'PYEOF'
+content = """pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "MyCursurAI-Native"
+include ':app'
+"""
+with open("MyCursurAI-Native/settings.gradle", "w") as f:
+    f.write(content)
+print("settings.gradle written OK")
+PYEOF
+
+      - name: Write root build.gradle
+        run: |
+          python3 - <<'PYEOF'
+content = """buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.2'
+    }
+}
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+"""
+with open("MyCursurAI-Native/build.gradle", "w") as f:
+    f.write(content)
+print("root build.gradle written OK")
+PYEOF
+
+      - name: Write app build.gradle
+        run: |
+          python3 - <<'PYEOF'
+content = """plugins {
+    id 'com.android.application'
+}
+android {
+    namespace 'com.mycursurai.chat'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.mycursurai.chat'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.core:core:1.16.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+}
+"""
+with open("MyCursurAI-Native/app/build.gradle", "w") as f:
+    f.write(content)
+print("app build.gradle written OK")
+PYEOF
+
+      - name: Write gradle-wrapper.properties
+        run: |
+          python3 - <<'PYEOF'
+content = """distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\\://services.gradle.org/distributions/gradle-8.6-bin.zip
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+"""
+with open("MyCursurAI-Native/gradle/wrapper/gradle-wrapper.properties", "w") as f:
+    f.write(content)
+print("gradle-wrapper.properties written OK")
+PYEOF
+
+      - name: Write gradle.properties
+        run: |
+          python3 - <<'PYEOF'
+content = """org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+android.enableJetifier=true
+org.gradle.configuration-cache=false
+"""
+with open("MyCursurAI-Native/gradle.properties", "w") as f:
+    f.write(content)
+print("gradle.properties written OK")
+PYEOF
+
+      - name: Write AndroidManifest.xml
+        run: |
+          python3 - <<'PYEOF'
+content = """<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MyCursurAI">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+"""
+with open("MyCursurAI-Native/app/src/main/AndroidManifest.xml", "w") as f:
+    f.write(content)
+print("AndroidManifest.xml written OK")
+PYEOF
+
+      - name: Write colors.xml
+        run: |
+          python3 - <<'PYEOF'
+content = """<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="color_primary">#FF6200EE</color>
+    <color name="color_primary_dark">#FF3700B3</color>
+    <color name="color_accent">#FF03DAC5</color>
+    <color name="color_background">#FF121212</color>
+    <color name="color_surface">#FF1E1E1E</color>
+    <color name="color_on_primary">#FFFFFFFF</color>
+    <color name="color_on_surface">#FFFFFFFF</color>
+    <color name="color_text_secondary">#FF888888</color>
+</resources>
+"""
+with open("MyCursurAI-Native/app/src/main/res/values/colors.xml", "w") as f:
+    f.write(content)
+print("colors.xml written OK")
+PYEOF
+
+      - name: Write strings.xml
+        run: |
+          python3 - <<'PYEOF'
+content = """<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MyCursurAI</string>
+    <string name="build_status">Part 1 Baseline Build Successful</string>
+</resources>
+"""
+with open("MyCursurAI-Native/app/src/main/res/values/strings.xml", "w") as f:
+    f.write(content)
+print("strings.xml written OK")
+PYEOF
+
+      - name: Write themes.xml
+        run: |
+          python3 - <<'PYEOF'
+content = """<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MyCursurAI" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/color_primary</item>
+        <item name="colorPrimaryVariant">@color/color_primary_dark</item>
+        <item name="colorOnPrimary">@color/color_on_primary</item>
+        <item name="colorSecondary">@color/color_accent</item>
+        <item name="android:colorBackground">@color/color_background</item>
+        <item name="android:statusBarColor">@color/color_background</item>
+        <item name="android:navigationBarColor">@color/color_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
+"""
+with open("MyCursurAI-Native/app/src/main/res/values/themes.xml", "w") as f:
+    f.write(content)
+print("themes.xml written OK")
+PYEOF
+
+      - name: Write activity_main.xml
+        run: |
+          python3 - <<'PYEOF'
+content = """<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@color/color_background"
+    android:padding="32dp">
+    <TextView
+        android:id="@+id/tv_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textColor="@color/color_on_surface"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/build_status"
+        android:textColor="@color/color_text_secondary"
+        android:textSize="14sp"
+        android:gravity="center" />
+</LinearLayout>
+"""
+with open("MyCursurAI-Native/app/src/main/res/layout/activity_main.xml", "w") as f:
+    f.write(content)
+print("activity_main.xml written OK")
+PYEOF
+
+      - name: Write MainActivity.java
+        run: |
+          python3 - <<'PYEOF'
+content = """package com.mycursurai.chat;
+
+import android.os.Bundle;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+    }
+}
+"""
+with open("MyCursurAI-Native/app/src/main/java/com/mycursurai/chat/MainActivity.java", "w") as f:
+    f.write(content)
+print("MainActivity.java written OK")
+PYEOF
+
+      - name: Write proguard-rules.pro
+        run: |
+          python3 - <<'PYEOF'
+content = """-keep class com.mycursurai.chat.** { *; }
+-keepattributes *Annotation*
+"""
+with open("MyCursurAI-Native/app/proguard-rules.pro", "w") as f:
+    f.write(content)
+print("proguard-rules.pro written OK")
+PYEOF
+
+      - name: Verify all files written
+        run: |
+          echo "=== Project file tree ==="
+          find MyCursurAI-Native -type f | sort
+          echo "=== All files present ==="
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('MyCursurAI-Native/**/*.gradle','MyCursurAI-Native/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Run assembleDebug
+        working-directory: MyCursurAI-Native
+        run: |
+          gradle assembleDebug \
+            --no-daemon \
+            --stacktrace \
+            -Dorg.gradle.jvmargs="-Xmx2g" \
+            2>&1 | tee build_output.log
+
+      - name: Evaluate build result
+        working-directory: MyCursurAI-Native
+        run: |
+          if grep -q "BUILD SUCCESSFUL" build_output.log; then
+            echo "========================================"
+            echo "  BUILD SUCCESSFUL - Green Checkmark"
+            echo "========================================"
+            exit 0
+          fi
+          echo "BUILD FAILED - last 60 lines:"
+          tail -60 build_output.log
+          exit 1
+
+      - name: Upload debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyCursurAI-Native-Part1-debug
+          path: MyCursurAI-Native/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-failure-logs
+          path: MyCursurAI-Native/build_output.log
+          retention-days: 7
