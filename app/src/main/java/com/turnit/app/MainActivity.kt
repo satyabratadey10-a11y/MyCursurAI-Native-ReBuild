@@ -14,7 +14,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
@@ -45,7 +44,7 @@ class MainActivity : AppCompatActivity() {
 
     private val msgs = mutableListOf<ChatMsg>()
     private val models = buildModels()
-    private var model = models[0]
+    private var model = models[0] // Default: QX Flash (Gemini 2.0)
     private var convId = UUID.randomUUID().toString()
     private var pending = -1
     private var tier = AppTier.Q
@@ -63,7 +62,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize Core Logic
+        // 1. Initialize Logic Controllers
         security = SecurityManager(this)
         reqCtrl = RequestController(
             scope = lifecycleScope,
@@ -72,14 +71,17 @@ class MainActivity : AppCompatActivity() {
         )
         btnCtrl = ButtonController(binding.btnSend)
 
-        // UI Initialization
+        // 2. UI Setup
         loadTypefaces()
         applyTypefaces()
         startAndBindService()
         setupDrawer()
         setupRecycler()
         setupMovingBorder()
-        applyHardwareBlur() 
+        
+        // 3. APPLY CLEAR VISION (Fixes sidebar/nav blur)
+        applyHardwareClearVision() 
+        
         setupModelChip()
         setupSendButton()
         boot()
@@ -112,19 +114,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * FIX: We removed blur from 'navView' and 'inputBorderContainer'.
-     * In Android, blurring a container blurs its children (text). 
-     * To keep text sharp, we only blur the Sidebar Header background layer.
+     * CLEAR VISION PROTOCOL:
+     * We explicitly clear blur from text-heavy areas (NavView).
+     * We only keep a subtle glow for the neon input border.
      */
-    private fun applyHardwareBlur() {
+    private fun applyHardwareClearVision() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val blurEffect = RenderEffect.createBlurEffect(15f, 15f, Shader.TileMode.CLAMP)
-            
-            // Only blur the header part of the navigation drawer
-            val headerView = binding.navView.getHeaderView(0)
-            headerView?.setRenderEffect(blurEffect)
-            
-            // Note: inputBorderContainer is left unblurred so the "Message TurnIt" text stays readable.
+            // Force-remove any stuck blur from the sidebar to ensure text clarity
+            binding.navView.setRenderEffect(null)
+
+            // Apply a localized blur ONLY to the input border for the neon effect
+            val neonBlur = RenderEffect.createBlurEffect(12f, 12f, Shader.TileMode.CLAMP)
+            binding.inputBorderContainer.setRenderEffect(neonBlur)
         }
     }
 
@@ -255,12 +256,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * CLEAN IDS: We remove 'models/' prefix here because RequestController.kt
-     * prepends the base URL. This fixes the Gemini 404.
+     * 2026 STABLE CONFIG:
+     * Switched from retired gemini-1.5 to gemini-2.0-flash.
      */
     private fun buildModels() = listOf(
-        ModelOption("QX Flash", "gemini-1.5-flash", "Quantum - Rapid", ModelOption.TYPE_GEMINI),
-        ModelOption("QX Apex 397", "Qwen/Qwen2.5-72B-Instruct", "Quantum - Max", ModelOption.TYPE_HUGGINGFACE)
+        ModelOption("QX Flash", "gemini-2.0-flash", "Rapid - Stable v1", ModelOption.TYPE_GEMINI),
+        ModelOption("QX Apex 397", "Qwen/Qwen2.5-72B-Instruct", "Max - Reasoning", ModelOption.TYPE_HUGGINGFACE)
     )
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density + .5f).toInt()
