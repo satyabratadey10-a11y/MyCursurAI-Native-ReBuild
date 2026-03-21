@@ -59,7 +59,7 @@
                     android:layout_height="match_parent"
                     android:background="@drawable/bg_input_inner"
                     android:hint="@string/hint_message"
-                    android:hintTextColor="@color/color_text_secondary"
+                    android:textColorHint="@color/color_text_secondary"
                     android:textColor="@color/color_on_surface"
                     android:textSize="14sp"
                     android:paddingStart="14dp"
