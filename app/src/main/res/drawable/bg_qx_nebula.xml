@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TurnIt QX - Deep Space Nebula (5 layers)
+     Layer 0: Pitch black void base
+     Layer 1: Nebula purple radial - top-right (35% alpha)
+     Layer 2: Deep violet radial   - centre-left (20% alpha)
+     Layer 3: Aurora teal leak     - bottom-right (10% alpha)
+     Layer 4: Vignette frame       - linear darkening edges -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Layer 0: Pitch black base -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FF010409" />
+        </shape>
+    </item>
+
+    <!-- Layer 1: Nebula purple glow top-right
+         #1A0B2E at 35% alpha = #591A0B2E -->
+    <item
+        android:top="-180dp"
+        android:right="-90dp"
+        android:bottom="200dp"
+        android:left="80dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="380dp"
+                android:startColor="#591A0B2E"
+                android:centerColor="#2E1A0B2E"
+                android:endColor="#001A0B2E" />
+        </shape>
+    </item>
+
+    <!-- Layer 2: Deep violet radial centre-left
+         #0D0221 at 20% alpha = #330D0221 -->
+    <item
+        android:top="80dp"
+        android:right="100dp"
+        android:bottom="100dp"
+        android:left="-60dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="300dp"
+                android:startColor="#330D0221"
+                android:centerColor="#1A0D0221"
+                android:endColor="#000D0221" />
+        </shape>
+    </item>
+
+    <!-- Layer 3: Aurora teal leak bottom-right
+         #00D1FF at 10% alpha = #1A00D1FF -->
+    <item
+        android:top="360dp"
+        android:right="-60dp"
+        android:bottom="-80dp"
+        android:left="160dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="200dp"
+                android:startColor="#1A00D1FF"
+                android:centerColor="#0D00D1FF"
+                android:endColor="#0000D1FF" />
+        </shape>
+    </item>
+
+    <!-- Layer 4: Vignette - radial from transparent centre
+         to 40% black at outer ring -->
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="600dp"
+                android:startColor="#00000000"
+                android:centerColor="#1A000000"
+                android:endColor="#66000000" />
+        </shape>
+    </item>
+
+</layer-list>

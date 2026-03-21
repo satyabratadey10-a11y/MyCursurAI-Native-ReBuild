@@ -1,9 +1,13 @@
 package com.turnit.app
+
 import android.animation.ValueAnimator
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RotateDrawable
 import android.os.Build
@@ -26,30 +30,43 @@ import androidx.recyclerview.widget.RecyclerView
 import com.turnit.app.databinding.ActivityMainBinding
 import kotlinx.coroutines.launch
 import java.util.UUID
+
 class MainActivity : AppCompatActivity() {
-    private lateinit var binding:   ActivityMainBinding
-    private lateinit var toggle:    ActionBarDrawerToggle
-    private lateinit var security:  SecurityManager
-    private lateinit var reqCtrl:   RequestController
-    private lateinit var btnCtrl:   ButtonController
-    private lateinit var adapter:   ChatAdapter
+
+    private lateinit var binding:  ActivityMainBinding
+    private lateinit var toggle:   ActionBarDrawerToggle
+    private lateinit var security: SecurityManager
+    private lateinit var reqCtrl:  RequestController
+    private lateinit var btnCtrl:  ButtonController
+    private lateinit var adapter:  ChatAdapter
+
+    // Custom typefaces loaded once from assets
+    private lateinit var tfDeltha:       Typeface   // Headers / branding
+    private lateinit var tfEquinox:      Typeface   // Chips / buttons
+    private lateinit var tfSpaceGrotesk: Typeface   // Body / chat text
+
     private val msgs    = mutableListOf<ChatMsg>()
     private val models  = buildModels()
     private var model   = models[0]
     private var convId  = UUID.randomUUID().toString()
     private var pending = -1
     private var tier    = AppTier.Q
+
     private var svc: TurnItService? = null
-    private val conn = object : ServiceConnection {
+    private val svcConn = object : ServiceConnection {
         override fun onServiceConnected(n: ComponentName, b: IBinder) {
             svc = (b as TurnItService.LocalBinder).get()
         }
         override fun onServiceDisconnected(n: ComponentName) { svc = null }
     }
+
+    // ---- Lifecycle ----------------------------------------------------
+
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
         binding  = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
         security = SecurityManager(this)
         reqCtrl  = RequestController(
             scope      = lifecycleScope,
@@ -57,19 +74,133 @@ class MainActivity : AppCompatActivity() {
             hfKey      = BuildConfig.HUGGINGFACE_API_KEY
         )
         btnCtrl = ButtonController(binding.btnSend)
-        startSvc(); setupDrawer(); setupRecycler()
-        applyBg(); setupBorder(); setupChip(); setupSendBtn()
-        boot()
+
+        loadTypefaces()           // 1. Load fonts from assets
+        applyTypefaces()          // 2. Bind fonts to views
+        startAndBindService()     // 3. Foreground service
+        setupDrawer()             // 4. 3-line nav drawer
+        setupRecycler()           // 5. Chat list
+        setupMovingBorder()       // 6. Neon border animator
+        applyHardwareBlur()       // 7. RenderEffect (SDK 33+)
+        setupModelChip()          // 8. Model selector
+        setupSendButton()         // 9. Morphing send/stop
+        boot()                    // 10. Handshake + auth
     }
+
     override fun onDestroy() {
-        super.onDestroy(); unbindService(conn); reqCtrl.close()
+        super.onDestroy()
+        unbindService(svcConn)
+        reqCtrl.close()
     }
-    private fun startSvc() {
+
+    // ---- Custom typefaces -------------------------------------------
+    //
+    // Fonts are bundled in app/src/main/assets/fonts/
+    // Deltha.ttf      -> sharp geometric headers
+    // Equinox.ttf     -> sci-fi display (chips, buttons)
+    // SpaceGrotesk.ttf -> readable body text
+
+    private fun loadTypefaces() {
+        tfDeltha       = Typeface.createFromAsset(assets, "fonts/Deltha.ttf")
+        tfEquinox      = Typeface.createFromAsset(assets, "fonts/Equinox.ttf")
+        tfSpaceGrotesk = Typeface.createFromAsset(assets, "fonts/SpaceGrotesk.ttf")
+    }
+
+    private fun applyTypefaces() {
+        // Toolbar title -> Deltha
+        binding.toolbar.post {
+            for (i in 0 until binding.toolbar.childCount) {
+                val child = binding.toolbar.getChildAt(i)
+                if (child is TextView) {
+                    child.typeface = tfDeltha
+                    break
+                }
+            }
+        }
+        // Model chip -> Equinox
+        binding.btnModelChip.typeface = tfEquinox
+        // Input hint/text -> Space Grotesk
+        binding.etInput.typeface = tfSpaceGrotesk
+    }
+
+    // ---- Hardware blur (SDK 33+) ------------------------------------
+    //
+    // Two blur surfaces:
+    //   input_border_container : 30x30 = strong "neon glow" blur
+    //   nav_view               : 20x20 = frosted glass drawer
+    //
+    // On API < 31 the views render without blur (no crash, graceful
+    // degradation).
+
+    private fun applyHardwareBlur() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+
+            // Input container: 30f x 30f gaussian blur
+            binding.inputBorderContainer.setRenderEffect(
+                RenderEffect.createBlurEffect(
+                    30f, 30f, Shader.TileMode.CLAMP
+                )
+            )
+
+            // Navigation drawer: 20f x 20f frosted glass
+            binding.navView.setRenderEffect(
+                RenderEffect.createBlurEffect(
+                    20f, 20f, Shader.TileMode.CLAMP
+                )
+            )
+        }
+    }
+
+    // ---- Moving neon border -----------------------------------------
+
+    private fun setupMovingBorder() {
+        val sweep = GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(
+                0xFF00D1FF.toInt(),
+                0xFF7B4FBF.toInt(),
+                0xFF1A0B2E.toInt(),
+                0xFF7B4FBF.toInt(),
+                0xFF00D1FF.toInt()
+            )
+        ).apply {
+            gradientType = GradientDrawable.SWEEP_GRADIENT
+            cornerRadius = dp(28).toFloat()
+        }
+        val rd = RotateDrawable().apply {
+            drawable = sweep
+            fromDegrees = 0f; toDegrees = 360f
+            isPivotXRelative = true; pivotX = 0.5f
+            isPivotYRelative = true; pivotY = 0.5f
+        }
+        binding.inputBorderContainer.background = rd
+        ValueAnimator.ofInt(0, 10000).apply {
+            duration     = 3500
+            repeatCount  = ValueAnimator.INFINITE
+            repeatMode   = ValueAnimator.RESTART
+            interpolator = LinearInterpolator()
+            addUpdateListener { rd.level = it.animatedValue as Int }
+            start()
+        }
+        // Re-apply blur AFTER background is set (SDK 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.inputBorderContainer.setRenderEffect(
+                RenderEffect.createBlurEffect(30f, 30f, Shader.TileMode.CLAMP)
+            )
+        }
+    }
+
+    // ---- Service ----------------------------------------------------
+
+    private fun startAndBindService() {
         val i = Intent(this, TurnItService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             startForegroundService(i) else startService(i)
-        bindService(i, conn, Context.BIND_AUTO_CREATE)
+        bindService(i, svcConn, Context.BIND_AUTO_CREATE)
     }
+
+    // ---- 3-line navigation drawer -----------------------------------
+
     private fun setupDrawer() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -77,241 +208,268 @@ class MainActivity : AppCompatActivity() {
             this, binding.drawerLayout, binding.toolbar,
             R.string.drawer_open, R.string.drawer_close
         )
-        binding.drawerLayout.addDrawerListener(toggle); toggle.syncState()
+        binding.drawerLayout.addDrawerListener(toggle)
+        toggle.syncState()
         binding.navView.setNavigationItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_new_chat -> { newConv(); true }
-                R.id.nav_history  -> { showHist(); true }
-                R.id.nav_api_key  -> { toast("Enter key via setUserKey()"); true }
-                R.id.nav_logout   -> {
+                R.id.nav_new_chat -> { newConversation(); true }
+                R.id.nav_history  -> { showHistory();    true }
+                R.id.nav_api_key  -> {
+                    toast("Use setUserGeminiKey() / setUserHfKey()")
+                    true
+                }
+                R.id.nav_logout -> {
                     security.clearSession()
-                    reqCtrl.setHandshake("")
-                    reqCtrl.setUserKey(null)
-                    header(AppTier.Q, "Signed out"); true
+                    setHeader(AppTier.Q, "Disconnected")
+                    true
                 }
                 else -> false
             }.also { binding.drawerLayout.closeDrawer(GravityCompat.START) }
         }
     }
+
+    // ---- Boot / handshake -------------------------------------------
+
     private fun boot() {
         lifecycleScope.launch {
             security.ensureDir()
-            when (val h = security.readHandshake()) {
-                is HandshakeResult.Valid -> {
-                    reqCtrl.setHandshake(security.encodeForTransport(h.data))
-                    header(tier, h.data.username)
-                }
+            when (val hs = security.readHandshake()) {
+                is HandshakeResult.Valid   ->
+                    setHeader(tier, hs.data.username)
                 is HandshakeResult.Missing ->
                     security.getCachedUid()?.let {
-                        header(tier, security.getCachedUname() ?: "User")
-                    } ?: toast("Please log in.")
+                        setHeader(tier, security.getCachedUname() ?: "Operator")
+                    } ?: toast("Authentication required.")
                 is HandshakeResult.Invalid ->
-                    toast("Handshake corrupt: ${h.reason}")
+                    toast("Identity error: ${hs.reason}")
             }
         }
     }
-    private fun header(t: AppTier, uname: String) {
+
+    // ---- Header / tier badge ----------------------------------------
+
+    private fun setHeader(t: AppTier, name: String) {
         tier = t
         val badge = when (t) {
-            AppTier.QX      -> "QX"
-            AppTier.Q       -> "Q"
-            AppTier.UNKNOWN -> ""
+            AppTier.QX -> "QX"; AppTier.Q -> "Q"; else -> ""
         }
         supportActionBar?.title =
-            if (badge.isEmpty()) "TurnIt" else "TurnIt $badge"
+            if (badge.isEmpty()) "TurnIt QX" else "TurnIt $badge"
         val hv = binding.navView.getHeaderView(0)
-        hv?.findViewById<TextView>(R.id.nav_header_username)?.text = uname
-        hv?.findViewById<TextView>(R.id.nav_header_tier)?.let { tv ->
-            tv.text = badge
-            tv.visibility = if (badge.isEmpty()) View.GONE else View.VISIBLE
-            tv.setTextColor(
+        hv?.findViewById<TextView>(R.id.nav_header_username)?.apply {
+            text     = name
+            typeface = tfSpaceGrotesk
+        }
+        hv?.findViewById<TextView>(R.id.nav_header_tier)?.apply {
+            text      = badge
+            typeface  = tfEquinox
+            visibility = if (badge.isEmpty()) View.GONE else View.VISIBLE
+            setTextColor(
                 if (t == AppTier.QX) 0xFFF87171.toInt()
-                else 0xFFC084FC.toInt())
+                else 0xFF00D1FF.toInt()
+            )
         }
     }
-    fun setUserKey(key: String?) {
-        reqCtrl.setUserKey(key)
-        toast(if (!key.isNullOrEmpty()) "Direct mode" else "Gateway (10 RPM)")
+
+    // ---- User API key overrides -------------------------------------
+
+    fun setUserGeminiKey(key: String?) {
+        reqCtrl.setUserGeminiKey(key)
+        toast(if (!key.isNullOrEmpty()) "Direct mode: unlimited"
+              else "Built-in key: 10 RPM")
     }
+
+    fun setUserHfKey(key: String?) {
+        reqCtrl.setUserHfKey(key)
+        toast(if (!key.isNullOrEmpty()) "Inference: direct"
+              else "Inference: 10 RPM")
+    }
+
+    // ---- Chat recycler ----------------------------------------------
+
     private fun setupRecycler() {
         adapter = ChatAdapter(msgs)
         binding.recyclerMessages.layoutManager =
             LinearLayoutManager(this).apply { stackFromEnd = true }
         binding.recyclerMessages.adapter = adapter
     }
-    private fun applyBg() {
-        binding.rootLayout.background = GradientDrawable(
-            GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(0xFFBF40BF.toInt(), 0xFF702963.toInt(),
-                0xFF000000.toInt())
-        ).apply { gradientType = GradientDrawable.LINEAR_GRADIENT }
-    }
-    private fun setupBorder() {
-        val sweep = GradientDrawable(
-            GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(0xFFC084FC.toInt(), 0xFF7C3AED.toInt(),
-                0xFFA78BFA.toInt(), 0xFF60A5FA.toInt(),
-                0xFFF87171.toInt(), 0xFFC084FC.toInt())
-        ).apply {
-            gradientType = GradientDrawable.SWEEP_GRADIENT
-            cornerRadius = (32 * resources.displayMetrics.density + .5f).toInt().toFloat()
-        }
-        val rd = RotateDrawable().apply {
-            drawable = sweep; fromDegrees = 0f; toDegrees = 360f
-            isPivotXRelative = true; pivotX = .5f
-            isPivotYRelative = true; pivotY = .5f
-        }
-        binding.inputBorderContainer.background = rd
-        ValueAnimator.ofInt(0, 10000).apply {
-            duration = 4000
-            repeatCount  = ValueAnimator.INFINITE
-            repeatMode   = ValueAnimator.RESTART
-            interpolator = LinearInterpolator()
-            addUpdateListener { rd.level = it.animatedValue as Int }
-            start()
-        }
-    }
-    private fun setupChip() {
+
+    // ---- Model chip -------------------------------------------------
+
+    private fun setupModelChip() {
         binding.btnModelChip.text = model.displayName
         binding.btnModelChip.setOnClickListener {
             ModelSelectionDialog(models, model.modelId) { sel ->
-                model = sel; binding.btnModelChip.text = sel.displayName
-                val ld = binding.btnModelChip.background
-                    as? android.graphics.drawable.LayerDrawable
-                    ?: return@ModelSelectionDialog
-                val g = ld.getDrawable(0)
-                    as? GradientDrawable
-                    ?: return@ModelSelectionDialog
-                ValueAnimator.ofInt(85, 255, 85).apply {
-                    duration = 600
-                    addUpdateListener {
-                        g.alpha = it.animatedValue as Int
-                        binding.btnModelChip.invalidate()
-                    }
-                    start()
-                }
-            }.show(supportFragmentManager, "model")
+                model = sel
+                binding.btnModelChip.text = sel.displayName
+                pulseChip()
+            }.show(supportFragmentManager, "model_select")
         }
     }
-    private fun setupSendBtn() {
+
+    private fun pulseChip() {
+        val ld = binding.btnModelChip.background
+            as? android.graphics.drawable.LayerDrawable ?: return
+        val g  = ld.getDrawable(0) as? GradientDrawable ?: return
+        ValueAnimator.ofInt(60, 255, 60).apply {
+            duration = 500
+            addUpdateListener {
+                g.alpha = it.animatedValue as Int
+                binding.btnModelChip.invalidate()
+            }
+            start()
+        }
+    }
+
+    // ---- Send/Stop button -------------------------------------------
+
+    private fun setupSendButton() {
         binding.btnSend.setOnTouchListener { v, ev ->
             if (ev.action == MotionEvent.ACTION_DOWN) btnCtrl.animatePress()
-            if (ev.action == MotionEvent.ACTION_UP) v.performClick()
+            if (ev.action == MotionEvent.ACTION_UP)   v.performClick()
             true
         }
         binding.btnSend.setOnClickListener {
             when (btnCtrl.state) {
-                ButtonState.IDLE       -> send()
-                ButtonState.PROCESSING -> stop()
+                ButtonState.IDLE       -> sendMessage()
+                ButtonState.PROCESSING -> stopRequest()
                 ButtonState.CANCELLING -> Unit
             }
         }
     }
-    private fun send() {
+
+    // ---- Message flow -----------------------------------------------
+
+    private fun sendMessage() {
         val txt = binding.etInput.text.toString().trim()
         if (txt.isEmpty()) return
         binding.etInput.setText("")
         addMsg(txt, ChatMsg.USER)
         pending = msgs.size
-        addMsg("Thinking...", ChatMsg.AI)
-        log("User", txt)
+        addMsg("Processing...", ChatMsg.AI)
+        persistLog("User", txt)
         btnCtrl.toProcessing()
-        reqCtrl.send(txt, model,
+        reqCtrl.send(
+            prompt   = txt,
+            model    = model,
             onResult = { r ->
-                val badge = "\u26a1 ${r.latencyMs}ms  ${r.modelId}"
-                update(pending, "${r.text}\n\n$badge")
+                val badge = "\u26a1 ${r.latencyMs}ms"
+                updateMsg(pending, "${r.text}\n\n$badge")
             },
-            onError  = { e -> update(pending, "Error: $e") }
+            onError  = { e -> updateMsg(pending, "Error: $e") }
         )
     }
-    private fun stop() {
+
+    private fun stopRequest() {
         reqCtrl.cancel()
         btnCtrl.toCancelling {
             val i = pending
             if (i >= 0 && i < msgs.size) {
-                msgs[i] = ChatMsg("Stopped.", ChatMsg.AI)
+                msgs[i] = ChatMsg("Cancelled.", ChatMsg.AI)
                 adapter.notifyItemChanged(i)
             }
             pending = -1
         }
     }
-    private fun update(at: Int, text: String) {
+
+    private fun updateMsg(at: Int, text: String) {
         if (at >= 0 && at < msgs.size) {
             msgs[at] = ChatMsg(text, ChatMsg.AI)
-            adapter.notifyItemChanged(at); scroll()
+            adapter.notifyItemChanged(at)
+            scrollToBottom()
         }
-        log("AI", text); btnCtrl.toIdle(); pending = -1
+        persistLog("AI", text)
+        btnCtrl.toIdle()
+        pending = -1
     }
+
+    // ---- Helpers ----------------------------------------------------
+
     private fun addMsg(t: String, tp: Int) {
         msgs.add(ChatMsg(t, tp))
-        adapter.notifyItemInserted(msgs.size - 1); scroll()
+        adapter.notifyItemInserted(msgs.size - 1)
+        scrollToBottom()
     }
-    private fun log(r: String, t: String) = lifecycleScope.launch {
+
+    private fun persistLog(r: String, t: String) = lifecycleScope.launch {
         security.appendLog(convId, r, t)
     }
-    private fun newConv() {
+
+    private fun newConversation() {
         convId = UUID.randomUUID().toString()
         msgs.clear(); adapter.notifyDataSetChanged()
     }
-    private fun showHist() = lifecycleScope.launch {
-        toast("${security.listConversations().size} conversations")
+
+    private fun showHistory() = lifecycleScope.launch {
+        toast("${security.listConversations().size} sessions stored")
     }
-    private fun scroll() {
+
+    private fun scrollToBottom() {
         val p = msgs.size - 1
         if (p >= 0) binding.recyclerMessages.post {
             binding.recyclerMessages.smoothScrollToPosition(p)
         }
     }
+
     private fun toast(m: String) =
         Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
 
-    // ---- 4-model selector: Gemini 1.5 Flash, Qwen 397B, Qwen 35B, Qwen 9B
+    private fun dp(v: Int) =
+        (v * resources.displayMetrics.density + .5f).toInt()
+
+    // ---- Model definitions (proprietary TurnIt QX names only) -------
+
     private fun buildModels() = listOf(
         ModelOption(
-            "Gemini 1.5 Flash",
+            "QX Flash",
             "gemini-1.5-flash",
-            "Google  -  Fast and multimodal",
+            "Quantum  -  Rapid multimodal",
             ModelOption.TYPE_GEMINI
         ),
         ModelOption(
-            "Qwen 397B",
+            "QX Apex 397",
             "Qwen/Qwen2-72B-Instruct",
-            "Alibaba  -  Maximum capability",
+            "Quantum  -  Max reasoning",
             ModelOption.TYPE_HUGGINGFACE
         ),
         ModelOption(
-            "Qwen 35B",
+            "QX Core 35",
             "Qwen/Qwen1.5-32B-Chat",
-            "Alibaba  -  Balanced performance",
+            "Quantum  -  Balanced",
             ModelOption.TYPE_HUGGINGFACE
         ),
         ModelOption(
-            "Qwen 9B",
+            "QX Micro 9",
             "Qwen/Qwen1.5-7B-Chat",
-            "Alibaba  -  Lightweight",
+            "Quantum  -  Low latency",
             ModelOption.TYPE_HUGGINGFACE
         )
     )
 
+    // ---- Data + Adapter ---------------------------------------------
+
     data class ChatMsg(val text: String, val type: Int) {
         companion object { const val USER = 0; const val AI = 1 }
     }
+
     inner class ChatAdapter(private val m: MutableList<ChatMsg>)
         : RecyclerView.Adapter<ChatAdapter.VH>() {
         override fun getItemViewType(p: Int) = m[p].type
-        override fun onCreateViewHolder(parent: ViewGroup, t: Int): VH =
-            VH(LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_chat_message, parent, false))
+        override fun onCreateViewHolder(parent: ViewGroup, t: Int): VH {
+            val v = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_chat_message, parent, false)
+            return VH(v)
+        }
         override fun onBindViewHolder(h: VH, pos: Int) {
             val msg = m[pos]
             if (msg.type == ChatMsg.USER) {
                 h.cu.visibility = View.VISIBLE
                 h.ca.visibility = View.GONE
-                h.tu.text = msg.text
+                h.tu.apply { text = msg.text; typeface = tfSpaceGrotesk }
             } else {
                 h.cu.visibility = View.GONE
                 h.ca.visibility = View.VISIBLE
-                h.ta.text = msg.text
+                h.ta.apply { text = msg.text; typeface = tfSpaceGrotesk }
             }
         }
         override fun getItemCount() = m.size
