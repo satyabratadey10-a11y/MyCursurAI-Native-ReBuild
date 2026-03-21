@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize Logic
+        // Initialize Core Logic
         security = SecurityManager(this)
         reqCtrl = RequestController(
             scope = lifecycleScope,
@@ -72,14 +72,14 @@ class MainActivity : AppCompatActivity() {
         )
         btnCtrl = ButtonController(binding.btnSend)
 
-        // UI Setup
+        // UI Initialization
         loadTypefaces()
         applyTypefaces()
         startAndBindService()
         setupDrawer()
         setupRecycler()
         setupMovingBorder()
-        applyHardwareBlur() // Corrected logic
+        applyHardwareBlur() 
         setupModelChip()
         setupSendButton()
         boot()
@@ -112,17 +112,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * FIX: We only apply blur to non-text containing layers.
-     * Blurring 'navView' or 'inputBorderContainer' blurs their text.
-     * We limit blur to the sidebar's header only.
+     * FIX: We removed blur from 'navView' and 'inputBorderContainer'.
+     * In Android, blurring a container blurs its children (text). 
+     * To keep text sharp, we only blur the Sidebar Header background layer.
      */
     private fun applyHardwareBlur() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val blur = RenderEffect.createBlurEffect(15f, 15f, Shader.TileMode.CLAMP)
+            val blurEffect = RenderEffect.createBlurEffect(15f, 15f, Shader.TileMode.CLAMP)
             
-            // Only blur the sidebar header background, not the list
+            // Only blur the header part of the navigation drawer
             val headerView = binding.navView.getHeaderView(0)
-            headerView?.setRenderEffect(blur)
+            headerView?.setRenderEffect(blurEffect)
+            
+            // Note: inputBorderContainer is left unblurred so the "Message TurnIt" text stays readable.
         }
     }
 
@@ -216,7 +218,7 @@ class MainActivity : AppCompatActivity() {
         addMsg(txt, ChatMsg.USER)
         
         pending = msgs.size
-        addMsg("Quantum processing...", ChatMsg.AI)
+        addMsg("Thinking...", ChatMsg.AI)
         
         btnCtrl.toProcessing()
         reqCtrl.send(
@@ -252,6 +254,10 @@ class MainActivity : AppCompatActivity() {
         if (msgs.isNotEmpty()) binding.recyclerMessages.smoothScrollToPosition(msgs.size - 1)
     }
 
+    /**
+     * CLEAN IDS: We remove 'models/' prefix here because RequestController.kt
+     * prepends the base URL. This fixes the Gemini 404.
+     */
     private fun buildModels() = listOf(
         ModelOption("QX Flash", "gemini-1.5-flash", "Quantum - Rapid", ModelOption.TYPE_GEMINI),
         ModelOption("QX Apex 397", "Qwen/Qwen2.5-72B-Instruct", "Quantum - Max", ModelOption.TYPE_HUGGINGFACE)
@@ -261,7 +267,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unbindService(svcConn)
+        runCatching { unbindService(svcConn) }
         reqCtrl.close()
     }
 
