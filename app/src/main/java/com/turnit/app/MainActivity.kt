@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.turnit.app.databinding.ActivityMainBinding
 import kotlinx.coroutines.launch
 import java.util.UUID
+import android.util.Log
 
 class MainActivity : AppCompatActivity() {
 
