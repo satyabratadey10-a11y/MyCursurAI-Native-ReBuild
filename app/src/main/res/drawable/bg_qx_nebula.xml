@@ -1,27 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Base Void -->
-    <item><shape><solid android:color="#010409" /></shape></item>
+    <!-- Layer 0: Deep Black Base -->
+    <item>
+        <shape><solid android:color="#010409" /></shape>
+    </item>
 
-    <!-- Nebula Purple (Increased visibility) -->
-    <item android:top="-100dp" android:right="-50dp">
+    <!-- Layer 1: Subtle Purple (Top Right) -->
+    <item android:top="-200dp" android:right="-100dp">
         <shape android:shape="oval">
             <gradient
                 android:type="radial"
                 android:gradientRadius="600dp"
-                android:startColor="#CC1A0B2E" 
+                android:startColor="#4D1A0B2E" 
                 android:endColor="#001A0B2E" />
         </shape>
     </item>
 
-    <!-- Aurora Teal (Increased visibility) -->
-    <item android:bottom="-50dp" android:left="-50dp">
+    <!-- Layer 2: Subtle Teal (Bottom Left) -->
+    <item android:bottom="-200dp" android:left="-100dp">
         <shape android:shape="oval">
             <gradient
                 android:type="radial"
-                android:gradientRadius="500dp"
-                android:startColor="#9900D1FF"
+                android:gradientRadius="600dp"
+                android:startColor="#3300D1FF"
                 android:endColor="#0000D1FF" />
+        </shape>
+    </item>
+    
+    <!-- Layer 3: Center Vignette (Keeps the middle dark) -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="80%p"
+                android:startColor="#00000000"
+                android:endColor="#CC010409" />
         </shape>
     </item>
 </layer-list>
