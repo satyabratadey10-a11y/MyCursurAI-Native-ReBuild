@@ -1,13 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.TurnIt" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="colorPrimary">@color/color_primary</item>
-        <item name="colorPrimaryVariant">@color/color_primary_dark</item>
-        <item name="colorOnPrimary">@color/color_on_primary</item>
-        <item name="colorSecondary">@color/color_accent</item>
-        <item name="android:colorBackground">@color/color_background</item>
-        <item name="android:statusBarColor">@color/color_primary_dark</item>
-        <item name="android:navigationBarColor">@color/color_background</item>
-        <item name="android:windowLightStatusBar">false</item>
+    <style name="Theme.TurnIt" parent="Theme.AppCompat.NoActionBar">
+        <!-- Primary color -->
+        <item name="colorPrimary">@color/color_header</item>
+        <item name="colorPrimaryDark">@color/color_surface</item>
+        <item name="colorAccent">@color/color_aurora</item>
+        
+        <!-- Background -->
+        <item name="android:windowBackground">@drawable/bg_qx_nebula</item>
+        
+        <!-- Text appearance -->
+        <item name="android:textColorPrimary">@color/color_on_surface</item>
+        <item name="android:textColorSecondary">@color/color_text_secondary</item>
+        
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/color_header</item>
+        <item name="android:navigationBarColor">@color/color_header</item>
     </style>
 </resources>
