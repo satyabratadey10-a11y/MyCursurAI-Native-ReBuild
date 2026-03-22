@@ -3,13 +3,6 @@
      Optimized for High-Contrast Visibility -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Layer 0: The "Void" (Solid Base) -->
-    <item>
-        <shape android:shape="rectangle">
-            <solid android:color="#FF010409" />
-        </shape>
-    </item>
-
     <!-- Layer 1: Nebula Purple Glow (Top-Right)
          Alpha: 45% (#73...) -->
     <item
@@ -61,7 +54,7 @@
         </shape>
     </item>
 
-    <!-- Layer 4: Cinematic Vignette 
+    <!-- Layer 4: Cinematic Vignette + Base
          Ensures edges are deep black to make the Nebula pop -->
     <item>
         <shape android:shape="rectangle">
