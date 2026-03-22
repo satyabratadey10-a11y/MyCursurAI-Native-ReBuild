@@ -55,39 +55,7 @@ class MainActivity : AppCompatActivity() {
         binding.etInput.typeface = tfSpaceGrotesk
     }
 
-    /**
-     * PROBLEM 3 FIX: Google-style RGB Animated Border.
-     * Uses Blue, Red, Yellow, and Green in a continuous sweep.
-     */
-    private fun setupGoogleRGBBorder() {
-        val googleColors = intArrayOf(
-            0xFF4285F4.toInt(), // Google Blue
-            0xFFEA4335.toInt(), // Google Red
-            0xFFFBBC05.toInt(), // Google Yellow
-            0xFF34A853.toInt(), // Google Green
-            0xFF4285F4.toInt()  // Back to Blue for loop
-        )
-
-        val sweep = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, googleColors).apply {
-            gradientType = GradientDrawable.SWEEP_GRADIENT
-            cornerRadius = dp(28).toFloat()
-        }
-
-        val rd = RotateDrawable().apply {
-            drawable = sweep
-            fromDegrees = 0f; toDegrees = 360f
-        }
-
-        binding.inputBorderContainer.background = rd
-
-        ValueAnimator.ofInt(0, 10000).apply {
-            duration = 3000 // Speed of the RGB rotation
-            repeatCount = ValueAnimator.INFINITE
-            interpolator = LinearInterpolator()
-            addUpdateListener { rd.level = it.animatedValue as Int }
-            start()
-        }
-    }
+    
 
     private fun sendMessage() {
         val txt = binding.etInput.text.toString().trim()
@@ -104,6 +72,41 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerMessages.adapter?.notifyItemInserted(msgs.size - 1)
         binding.recyclerMessages.smoothScrollToPosition(msgs.size - 1)
     }
+
+    // Inside MainActivity.kt, update the setupGoogleRGBBorder function:
+
+private fun setupGoogleRGBBorder() {
+    // Google's Official Brand Colors
+    val googleColors = intArrayOf(
+        0xFF4285F4.toInt(), // Blue
+        0xFFEA4335.toInt(), // Red
+        0xFFFBBC05.toInt(), // Yellow
+        0xFF34A853.toInt(), // Green
+        0xFF4285F4.toInt()  // Loop back to Blue
+    )
+
+    val sweep = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, googleColors).apply {
+        gradientType = GradientDrawable.SWEEP_GRADIENT
+        cornerRadius = dp(28).toFloat()
+    }
+
+    val rd = RotateDrawable().apply {
+        drawable = sweep
+        fromDegrees = 0f
+        toDegrees = 360f
+    }
+
+    // Apply to the border container
+    binding.inputBorderContainer.background = rd
+
+    ValueAnimator.ofInt(0, 10000).apply {
+        duration = 4000 // Slower, more "fluid" rotation like Gemini
+        repeatCount = ValueAnimator.INFINITE
+        interpolator = LinearInterpolator()
+        addUpdateListener { rd.level = it.animatedValue as Int }
+        start()
+    }
+}
 
     private fun updateMsg(at: Int, text: String) {
         if (at in msgs.indices) {
