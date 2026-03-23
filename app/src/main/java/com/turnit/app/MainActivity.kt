@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity() {
         binding.navView.setNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_new_chat -> { msgs.clear(); binding.recyclerMessages.adapter?.notifyDataSetChanged() }
-                R.id.nav_api_key -> { /* API Key Settings Dialog */ }
+                R.id.nav_api_key -> { /* Open API Key Dialog */ }
             }
             binding.drawerLayout.closeDrawer(GravityCompat.START)
             true
@@ -91,13 +91,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 2026 UPDATED MODEL LIST:
-     * Using Gemini 3/3.1 and Qwen Novita Vision models.
+     * UPDATED 2026 PREVIEW MODELS:
+     * gemini-3.1-pro-preview is the current advanced preview.
+     * gemini-3.1-flash-lite-preview replaces the discontinued 2.5 lite.
      */
     private fun buildModels() = listOf(
-        ModelOption("Gemini 3 Pro", "gemini-3-pro-preview", "Google - Ultra", ModelOption.TYPE_GEMINI),
         ModelOption("Gemini 3.1 Pro", "gemini-3.1-pro-preview", "Google - NextGen", ModelOption.TYPE_GEMINI),
-        ModelOption("Gemini 2.5 Flash Lite", "gemini-2.5-flash-lite", "Google - Efficiency", ModelOption.TYPE_GEMINI),
+        ModelOption("Gemini 3 Flash", "gemini-3-flash-preview", "Google - Rapid", ModelOption.TYPE_GEMINI),
+        ModelOption("Gemini 3.1 Flash Lite", "gemini-3.1-flash-lite-preview", "Google - Fast", ModelOption.TYPE_GEMINI),
         ModelOption("Qwen 3.5 397B", "Qwen/Qwen3.5-397B-A17B:novita", "Alibaba - Vision Pro", ModelOption.TYPE_HUGGINGFACE),
         ModelOption("Qwen 3.5 35B", "Qwen/Qwen3.5-35B-A3B:novita", "Alibaba - Vision Lite", ModelOption.TYPE_HUGGINGFACE),
         ModelOption("Qwen 2.5 72B", "Qwen/Qwen2.5-72B-Instruct:novita", "Alibaba - Balanced", ModelOption.TYPE_HUGGINGFACE)
