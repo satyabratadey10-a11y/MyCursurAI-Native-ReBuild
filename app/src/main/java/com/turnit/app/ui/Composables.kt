@@ -18,8 +18,6 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.unit.*
 import kotlinx.coroutines.launch
 
-const val MSG_USER = 0
-const val MSG_AI = 1
 
 @Composable
 fun rememberRgbBrush(): Brush {
