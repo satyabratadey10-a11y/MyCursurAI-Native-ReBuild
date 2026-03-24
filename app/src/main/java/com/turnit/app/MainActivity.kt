@@ -21,7 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var reqCtrl: RequestController
     private val msgs = mutableListOf<Pair<String, Int>>()
     private val models = buildModels()
-    private var model = models[0]
+    private var model = models[0] // Default: Gemini 3.1 Pro
 
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
@@ -41,6 +41,7 @@ class MainActivity : AppCompatActivity() {
             binding.inputBorderContainer.setRenderEffect(null)
         }
 
+        // FIXED: Now references the function below correctly
         binding.btnModelChip.setOnClickListener { showModelPicker() }
         binding.btnSend.setOnClickListener { sendMessage() }
     }
@@ -54,7 +55,7 @@ class MainActivity : AppCompatActivity() {
         binding.navView.setNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_new_chat -> { msgs.clear(); binding.recyclerMessages.adapter?.notifyDataSetChanged() }
-                R.id.nav_api_key -> { /* Open API Key Dialog */ }
+                R.id.nav_api_key -> { /* Open API Settings */ }
             }
             binding.drawerLayout.closeDrawer(GravityCompat.START)
             true
@@ -91,9 +92,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * UPDATED 2026 PREVIEW MODELS:
-     * gemini-3.1-pro-preview is the current advanced preview.
-     * gemini-3.1-flash-lite-preview replaces the discontinued 2.5 lite.
+     * FIXED: This was missing in your last build.
+     */
+    private fun showModelPicker() {
+        ModelSelectionDialog(models, model.modelId) { selected ->
+            model = selected
+            binding.btnModelChip.text = selected.displayName
+        }.show(supportFragmentManager, "model_picker")
+    }
+
+    /**
+     * 2026 FREE PREVIEW MODELS (MARCH UPDATE)
      */
     private fun buildModels() = listOf(
         ModelOption("Gemini 3.1 Pro", "gemini-3.1-pro-preview", "Google - NextGen", ModelOption.TYPE_GEMINI),
@@ -108,9 +117,9 @@ class MainActivity : AppCompatActivity() {
         val txt = binding.etInput.text.toString().trim()
         if (txt.isEmpty()) return
         binding.etInput.setText("")
-        msgs.add(txt to 0) // User (Right)
+        msgs.add(txt to 0) // User (Type 0)
         val pos = msgs.size
-        msgs.add("Thinking..." to 1) // AI (Left)
+        msgs.add("Thinking..." to 1) // AI (Type 1)
         binding.recyclerMessages.adapter?.notifyItemRangeInserted(pos - 1, 2)
         binding.recyclerMessages.smoothScrollToPosition(msgs.size - 1)
         reqCtrl.send(txt, model, null, { r -> updateMsg(pos, r) }, { e -> updateMsg(pos, "Error: $e") })
@@ -136,7 +145,7 @@ class MainActivity : AppCompatActivity() {
             h.tv.setBackgroundResource(R.drawable.bg_glass_bubble) 
             
             val params = h.tv.layoutParams as android.widget.LinearLayout.LayoutParams
-            params.gravity = if (type == 0) Gravity.END else Gravity.START 
+            params.gravity = if (type == 0) android.view.Gravity.END else android.view.Gravity.START 
             h.tv.layoutParams = params
         }
         override fun getItemCount() = m.size
