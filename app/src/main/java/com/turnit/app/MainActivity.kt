@@ -16,12 +16,12 @@ class MainActivity : ComponentActivity() {
     private lateinit var reqCtrl: RequestController
     private val messages = mutableStateListOf<Pair<String, Int>>()
     
-    // Create the ModelOption object for Gemini 3 Flash
+    // Corrected parameter names for 2026 ModelOption
     private val defaultModel = ModelOption(
-        name = "Gemini 3 Flash",
-        id = "gemini-3-flash-preview",
+        displayName = "Gemini 3 Flash",
+        modelId = "gemini-3-flash-preview",
         description = "Google - Rapid",
-        type = ModelOption.TYPE_GEMINI
+        apiType = ModelOption.TYPE_GEMINI
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,12 +46,10 @@ class MainActivity : ComponentActivity() {
 
     private fun sendMessage(text: String) {
         if (text.isBlank()) return
-
         messages.add(text to MSG_USER)
         val aiIndex = messages.size
         messages.add("Thinking..." to MSG_AI)
 
-        // FIX: Passing the defaultModel object instead of a String
         reqCtrl.send(text, defaultModel, null, { response ->
             messages[aiIndex] = response to MSG_AI
         }, { error ->
