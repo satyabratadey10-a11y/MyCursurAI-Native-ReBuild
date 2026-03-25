@@ -12,11 +12,10 @@ import com.turnit.app.ui.TurnItMainScreen
 import com.turnit.app.ui.TurnItTheme
 
 class MainActivity : ComponentActivity() {
-
     private lateinit var reqCtrl: RequestController
     private val messages = mutableStateListOf<Pair<String, Int>>()
     
-    // Corrected parameter names for 2026 ModelOption
+    // Explicitly named parameters for the 2026 ModelOption class
     private val defaultModel = ModelOption(
         displayName = "Gemini 3 Flash",
         modelId = "gemini-3-flash-preview",
@@ -26,13 +25,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         reqCtrl = RequestController(
             scope = lifecycleScope, 
             geminiKey = BuildConfig.GEMINI_API_KEY, 
             hfKey = BuildConfig.HUGGINGFACE_API_KEY
         )
-
         setContent {
             TurnItTheme {
                 TurnItMainScreen(
@@ -49,7 +46,6 @@ class MainActivity : ComponentActivity() {
         messages.add(text to MSG_USER)
         val aiIndex = messages.size
         messages.add("Thinking..." to MSG_AI)
-
         reqCtrl.send(text, defaultModel, null, { response ->
             messages[aiIndex] = response to MSG_AI
         }, { error ->
