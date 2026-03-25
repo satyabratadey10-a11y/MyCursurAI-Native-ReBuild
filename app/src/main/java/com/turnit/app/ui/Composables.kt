@@ -582,7 +582,7 @@ fun TurnItMainScreen(
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color(0xCC0B0E14),
                         titleContentColor = QX.TextPrimary,
-                        navigationIconColor = QX.QuantumTeal
+                        navigationIconContentColor = QX.QuantumTeal
                     )
                 )
             },
