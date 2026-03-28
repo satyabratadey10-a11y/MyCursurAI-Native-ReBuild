@@ -1,5 +1,5 @@
 package com.turnit.app.ui
-import com.turnit.app.ModelOption
+import com.turnit.app.models.ModelOption
 
 val QX_MODELS = listOf(
     ModelOption("Gemini 3 Flash", "gemini-3-flash-preview", "Google - Rapid", ModelOption.TYPE_GEMINI, "G3F"),

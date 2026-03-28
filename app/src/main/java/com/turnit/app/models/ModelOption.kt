@@ -1,11 +1,11 @@
-package com.turnit.app
+package com.turnit.app.models
 
 data class ModelOption(
     val displayName: String,
     val modelId: String,
     val description: String,
     val apiType: Int,
-    val shortLabel: String = "" // For Claude's UI icons
+    val shortLabel: String
 ) {
     companion object {
         const val TYPE_GEMINI = 0
