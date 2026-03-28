@@ -54,9 +54,6 @@ private object QX {
 }
 
 @Composable
-fun TurnItTheme(content: @Composable () -> Unit) {
-    MaterialTheme(content = content)
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
