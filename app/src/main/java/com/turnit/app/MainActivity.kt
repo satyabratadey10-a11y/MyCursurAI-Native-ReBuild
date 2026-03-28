@@ -10,54 +10,64 @@ import com.turnit.app.models.ModelOption
 
 class MainActivity : ComponentActivity() {
     private lateinit var reqCtrl: RequestController
+    private lateinit var turso: TursoManager
     private val messages = mutableStateListOf<Pair<String, Int>>()
     
-    // Auth State
-    private var isLoggedIn by mutableStateOf(false)
+    private var userId by mutableStateOf<String?>(null)
     private var currentScreen by mutableStateOf("login")
-
-    // Model State
     private var activeModel by mutableStateOf(QX_MODELS[0])
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Using the Secrets you added to GitHub
+        turso = TursoManager(BuildConfig.TURSO_URL, BuildConfig.TURSO_TOKEN)
         reqCtrl = RequestController(lifecycleScope, BuildConfig.GEMINI_API_KEY, BuildConfig.HUGGINGFACE_API_KEY)
 
         setContent {
             TurnItTheme {
-                if (!isLoggedIn) {
-                    if (currentScreen == "login") {
+                when {
+                    userId == null && currentScreen == "login" -> {
                         LoginScreen(
-                            onLoginClick = { _, _ -> isLoggedIn = true },
+                            onLoginClick = { u, p -> 
+                                turso.login(u, p) { success, id -> if(success) userId = id }
+                            },
                             onSignupClick = { currentScreen = "signup" }
                         )
-                    } else {
+                    }
+                    userId == null && currentScreen == "signup" -> {
                         SignupScreen(
-                            onSignupClick = { _, _, _ -> currentScreen = "login" },
+                            onSignupClick = { u, e, p -> 
+                                turso.signup(u, e, p) { success, id -> if(success) userId = id }
+                            },
                             onLoginClick = { currentScreen = "login" }
                         )
                     }
-                } else {
-                    TurnItMainScreen(
-                        messages = messages,
-                        selectedModel = activeModel,
-                        onModelChange = { activeModel = it },
-                        onSend = { text -> sendMessage(text) },
-                        onNewChat = { messages.clear() }
-                    )
+                    else -> {
+                        TurnItMainScreen(
+                            messages = messages,
+                            selectedModel = activeModel,
+                            onModelChange = { activeModel = it },
+                            onSend = { text -> sendMessage(text) },
+                            onNewChat = { messages.clear() }
+                        )
+                    }
                 }
             }
         }
     }
 
     private fun sendMessage(text: String) {
-        if (text.isBlank()) return
+        if (text.isBlank() || userId == null) return
         messages.add(text to MSG_USER)
+        turso.saveMessage(userId!!, "user", text)
+
         val aiIndex = messages.size
-        messages.add("..." to MSG_AI)
+        messages.add("Thinking..." to MSG_AI)
 
         reqCtrl.send(text, activeModel, null, { response ->
             messages[aiIndex] = response to MSG_AI
+            turso.saveMessage(userId!!, "ai", response)
         }, { error ->
             messages[aiIndex] = "Error: $error" to MSG_AI
         })

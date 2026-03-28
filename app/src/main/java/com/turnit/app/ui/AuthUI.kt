@@ -44,281 +44,243 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.cos
 import kotlin.math.sin
 
-// =========================================================
-// AUTH COLOUR PALETTE (mirrors QX object in Composables)
-// =========================================================
+// =====================================================================
+// AUTH COLOUR TOKENS (self-contained, no cross-file dependency)
+// =====================================================================
 
-private object AuthQX {
-    val VoidBlack     = Color(0xFF0B0E14)
-    val NebulaSurface = Color(0xFF1A1225)
-    val QuantumTeal   = Color(0xFF008080)
-    val TealGlow      = Color(0xFF00B8B8)
-    val PurpleGlow    = Color(0xFF7B4FBF)
-    val AuroraBlue    = Color(0xFF00D1FF)
-    val NeonRed       = Color(0xFFF87171)
-    val NeonGreen     = Color(0xFF4ADE80)
-    val GlassFill     = Color(0x1AFFFFFF)
-    val GlassBorder   = Color(0x33FFFFFF)
-    val FieldFill     = Color(0x14FFFFFF)
-    val TextPrimary   = Color(0xFFF0F4FF)
-    val TextMuted     = Color(0xFF8A9BB5)
-    val ErrorRed      = Color(0xFFF87171)
+private object A {
+    val VoidBlack  = Color(0xFF0B0E14)
+    val Surface    = Color(0xFF1A1225)
+    val Teal       = Color(0xFF008080)
+    val TealLight  = Color(0xFF00B8B8)
+    val Purple     = Color(0xFF7B4FBF)
+    val Blue       = Color(0xFF00D1FF)
+    val NeonRed    = Color(0xFFF87171)
+    val NeonGreen  = Color(0xFF4ADE80)
+    val Glass      = Color(0x1AFFFFFF)
+    val GlassBd    = Color(0x33FFFFFF)
+    val FieldFill  = Color(0x14FFFFFF)
+    val TextPri    = Color(0xFFF0F4FF)
+    val TextMuted  = Color(0xFF8A9BB5)
+    val ErrRed     = Color(0xFFF87171)
 }
 
-// =========================================================
-// SHARED AUTH TYPOGRAPHY
-// =========================================================
+// =====================================================================
+// AUTH TYPOGRAPHY
+// =====================================================================
 
-private val authDisplay = TextStyle(
-    fontSize      = 28.sp,
-    fontWeight    = FontWeight.Bold,
+private val aDisplay = TextStyle(
+    fontSize = 28.sp, fontWeight = FontWeight.Bold,
     letterSpacing = 0.06.sp
 )
-
-private val authBody = TextStyle(
-    fontSize      = 14.sp,
-    letterSpacing = 0.01.sp
+private val aBody = TextStyle(
+    fontSize = 14.sp, letterSpacing = 0.01.sp
+)
+private val aLabel = TextStyle(
+    fontSize = 11.sp, letterSpacing = 0.08.sp,
+    fontWeight = FontWeight.Medium
 )
 
-private val authLabel = TextStyle(
-    fontSize      = 11.sp,
-    letterSpacing = 0.08.sp,
-    fontWeight    = FontWeight.Medium
-)
+// =====================================================================
+// RGB INTERPOLATION (private, self-contained)
+// =====================================================================
 
-// =========================================================
-// RGB FLOW HELPERS (self-contained, no Composables import)
-// =========================================================
-
-private fun authLerpColor(a: Color, b: Color, t: Float) = Color(
-    red   = a.red   + (b.red   - a.red)   * t,
-    green = a.green + (b.green - a.green) * t,
-    blue  = a.blue  + (b.blue  - a.blue)  * t,
+private fun aLerp(from: Color, to: Color, t: Float) = Color(
+    red   = from.red   + (to.red   - from.red)   * t,
+    green = from.green + (to.green - from.green) * t,
+    blue  = from.blue  + (to.blue  - from.blue)  * t,
     alpha = 1f
 )
 
-private fun authLerpRgb(t: Float): Color {
-    val stops = listOf(
-        AuthQX.NeonRed, AuthQX.NeonGreen,
-        AuthQX.AuroraBlue, AuthQX.PurpleGlow,
-        AuthQX.NeonRed
-    )
-    val scaled = t.coerceIn(0f, 1f) * (stops.size - 1)
-    val idx    = scaled.toInt().coerceIn(0, stops.size - 2)
-    return authLerpColor(stops[idx], stops[idx + 1], scaled - idx)
+private fun aRgb(t: Float): Color {
+    val s = listOf(A.NeonRed, A.NeonGreen, A.Blue, A.Purple, A.NeonRed)
+    val v = t.coerceIn(0f, 1f) * (s.size - 1)
+    val i = v.toInt().coerceIn(0, s.size - 2)
+    return aLerp(s[i], s[i + 1], v - i)
 }
 
-// =========================================================
-// QUANTUM ENTRY BUTTON
-// Rotating RGB border + teal-to-purple fill.
-// drawWithCache: CornerRadius + Stroke allocated once per size.
-// =========================================================
+// =====================================================================
+// ROTATING RGB BORDER MODIFIER (auth-local)
+// drawWithCache: allocates CornerRadius + Stroke once per size change.
+// =====================================================================
 
 @Composable
-private fun QuantumEntryButton(
-    label:    String,
-    onClick:  () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled:  Boolean  = true
-) {
-    val cornerRadius = 14.dp
-    val shape        = RoundedCornerShape(cornerRadius)
-
-    val inf = rememberInfiniteTransition(label = "qe_border")
+private fun Modifier.authRgbBorder(
+    radius: Float = 14f,
+    stroke: Float = 2f,
+    dur:    Int   = 2800
+): Modifier {
+    val inf = rememberInfiniteTransition(label = "auth_rgb")
     val deg by inf.animateFloat(
-        initialValue  = 0f,
-        targetValue   = 360f,
-        animationSpec = infiniteRepeatable(
-            tween(3000, easing = LinearEasing),
-            RepeatMode.Restart
-        ),
-        label = "qe_deg"
+        0f, 360f,
+        infiniteRepeatable(tween(dur, easing = LinearEasing),
+            RepeatMode.Restart),
+        label = "auth_deg"
     )
-    val borderColors = listOf(
-        AuthQX.NeonRed, AuthQX.QuantumTeal,
-        AuthQX.NeonGreen, AuthQX.AuroraBlue,
-        AuthQX.PurpleGlow, AuthQX.NeonRed
+    val cols = listOf(
+        A.NeonRed, A.Teal, A.NeonGreen, A.Blue, A.Purple, A.NeonRed
     )
-
-    Button(
-        onClick  = onClick,
-        enabled  = enabled,
-        shape    = shape,
-        colors   = ButtonDefaults.buttonColors(
-            containerColor     = Color.Transparent,
-            contentColor       = AuthQX.TextPrimary,
-            disabledContainerColor = AuthQX.GlassFill,
-            disabledContentColor   = AuthQX.TextMuted
-        ),
-        modifier = modifier
-            .fillMaxWidth()
-            .height(52.dp)
-            .clip(shape)
-            .background(
-                Brush.linearGradient(
-                    listOf(AuthQX.QuantumTeal, AuthQX.PurpleGlow)
-                ),
-                shape
+    return drawWithCache {
+        val sw  = stroke
+        val cr  = CornerRadius(radius)
+        val stk = Stroke(sw)
+        onDrawWithContent {
+            drawContent()
+            val rad = Math.toRadians(deg.toDouble())
+            val r   = maxOf(size.width, size.height)
+            val sx  = (size.width  / 2 + r * cos(rad)).toFloat()
+            val sy  = (size.height / 2 + r * sin(rad)).toFloat()
+            drawRoundRect(
+                brush        = Brush.sweepGradient(cols, Offset(sx, sy)),
+                size         = size,
+                cornerRadius = cr,
+                style        = stk
             )
-            .drawWithCache {
-                val sw  = 2.dp.toPx()
-                val cr  = CornerRadius(cornerRadius.toPx())
-                val stk = Stroke(sw)
-                onDrawWithContent {
-                    drawContent()
-                    val rad = Math.toRadians(deg.toDouble())
-                    val r   = maxOf(size.width, size.height)
-                    val sx  = (size.width  / 2 + r * cos(rad)).toFloat()
-                    val sy  = (size.height / 2 + r * sin(rad)).toFloat()
-                    drawRoundRect(
-                        brush        = Brush.sweepGradient(
-                            borderColors, Offset(sx, sy)),
-                        size         = size,
-                        cornerRadius = cr,
-                        style        = stk
-                    )
-                }
-            }
-    ) {
-        Text(
-            text  = label,
-            style = authBody.copy(
-                fontWeight    = FontWeight.Bold,
-                letterSpacing = 0.12.sp,
-                color         = AuthQX.TextPrimary
-            )
-        )
+        }
     }
 }
 
-// =========================================================
-// NEON FIELD
-// Glass fill + teal focus glow + glass border.
-// No BlurMaskFilter (Y51a safe).
-// =========================================================
+// =====================================================================
+// NEON FOCUS FIELD
+// Border switches from 20%-white to Teal on focus.
+// =====================================================================
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NeonField(
     value:         String,
     onValueChange: (String) -> Unit,
-    placeholder:   String,
-    modifier:      Modifier          = Modifier,
-    keyboardType:  KeyboardType      = KeyboardType.Text,
-    isPassword:    Boolean           = false
+    label:         String,
+    modifier:      Modifier     = Modifier,
+    kb:            KeyboardType = KeyboardType.Text,
+    isPassword:    Boolean      = false
 ) {
-    val isFocused  = remember { mutableStateOf(false) }
-    val borderColor = if (isFocused.value) AuthQX.QuantumTeal
-                      else AuthQX.GlassBorder
-    val fieldShape = RoundedCornerShape(12.dp)
-
+    val focused = remember { mutableStateOf(false) }
+    val bdColor = if (focused.value) A.Teal else A.GlassBd
+    val shape   = RoundedCornerShape(12.dp)
     TextField(
         value         = value,
         onValueChange = onValueChange,
         placeholder   = {
-            Text(
-                placeholder,
-                style = authBody.copy(
-                    color = AuthQX.TextMuted.copy(alpha = 0.5f)
-                )
-            )
+            Text(label, style = aBody.copy(
+                color = A.TextMuted.copy(alpha = 0.5f)))
         },
-        singleLine            = true,
-        textStyle             = authBody.copy(color = AuthQX.TextPrimary),
-        visualTransformation  = if (isPassword)
+        singleLine           = true,
+        textStyle            = aBody.copy(color = A.TextPri),
+        visualTransformation = if (isPassword)
             PasswordVisualTransformation() else VisualTransformation.None,
-        keyboardOptions       = KeyboardOptions(
-            keyboardType = keyboardType
-        ),
+        keyboardOptions = KeyboardOptions(keyboardType = kb),
         colors = TextFieldDefaults.colors(
-            focusedContainerColor     = AuthQX.FieldFill,
-            unfocusedContainerColor   = AuthQX.FieldFill,
-            focusedIndicatorColor     = Color.Transparent,
-            unfocusedIndicatorColor   = Color.Transparent,
-            disabledIndicatorColor    = Color.Transparent,
-            cursorColor               = AuthQX.QuantumTeal,
-            focusedTextColor          = AuthQX.TextPrimary,
-            unfocusedTextColor        = AuthQX.TextPrimary
+            focusedContainerColor   = A.FieldFill,
+            unfocusedContainerColor = A.FieldFill,
+            focusedIndicatorColor   = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor  = Color.Transparent,
+            cursorColor             = A.Teal,
+            focusedTextColor        = A.TextPri,
+            unfocusedTextColor      = A.TextPri
         ),
         modifier = modifier
             .fillMaxWidth()
-            .clip(fieldShape)
-            .border(
-                width = 1.dp,
-                color = borderColor,
-                shape = fieldShape
-            )
+            .clip(shape)
+            .border(1.dp, bdColor, shape)
     )
 }
 
-// =========================================================
-// AUTH CARD SHELL
-// Shared glassmorphic card wrapping login / signup.
-// =========================================================
+// =====================================================================
+// QUANTUM ENTRY BUTTON
+// Teal-to-purple gradient fill + rotating RGB sweep border.
+// =====================================================================
+
+@Composable
+private fun QuantumButton(
+    text:     String,
+    onClick:  () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled:  Boolean  = true
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Button(
+        onClick  = onClick,
+        enabled  = enabled,
+        shape    = shape,
+        colors   = ButtonDefaults.buttonColors(
+            containerColor         = Color.Transparent,
+            contentColor           = A.TextPri,
+            disabledContainerColor = A.Glass,
+            disabledContentColor   = A.TextMuted
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .clip(shape)
+            .background(
+                Brush.linearGradient(listOf(A.Teal, A.Purple)), shape
+            )
+            .authRgbBorder(radius = 14f * 3f, stroke = 2f)
+    ) {
+        Text(text, style = aBody.copy(
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.12.sp,
+            color = A.TextPri
+        ))
+    }
+}
+
+// =====================================================================
+// AUTH CARD (glassmorphism shell)
+// =====================================================================
 
 @Composable
 private fun AuthCard(
     modifier: Modifier = Modifier,
     content:  @Composable () -> Unit
 ) {
-    val cardShape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(24.dp)
     Box(
         modifier = modifier
-            .clip(cardShape)
+            .clip(shape)
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        AuthQX.NebulaSurface.copy(alpha = 0.85f),
-                        AuthQX.VoidBlack.copy(alpha = 0.95f)
+                        A.Surface.copy(alpha = 0.88f),
+                        A.VoidBlack.copy(alpha = 0.96f)
                     )
                 ),
-                cardShape
+                shape
             )
-            .border(
-                width = 1.dp,
-                color = AuthQX.GlassBorder,
-                shape = cardShape
-            )
+            .border(1.dp, A.GlassBd, shape)
             .padding(horizontal = 28.dp, vertical = 32.dp),
         contentAlignment = Alignment.Center
-    ) {
-        content()
-    }
+    ) { content() }
 }
 
-// =========================================================
-// NEBULA AUTH BACKGROUND
-// Three-layer gradient. No RenderEffect (API 30 compat).
-// =========================================================
+// =====================================================================
+// AUTH BACKGROUND (purple top-right + teal bottom-left radial glow)
+// No RenderEffect - safe for vivo Y51a (API 30).
+// =====================================================================
 
 @Composable
-private fun AuthBackground(modifier: Modifier = Modifier) {
+private fun AuthBg(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(AuthQX.VoidBlack)
+            .background(A.VoidBlack)
             .background(
                 Brush.radialGradient(
-                    colors = listOf(
-                        AuthQX.PurpleGlow.copy(alpha = 0.18f),
-                        Color.Transparent
-                    ),
+                    listOf(A.Purple.copy(alpha = 0.20f), Color.Transparent),
                     center = Offset(Float.POSITIVE_INFINITY, 0f),
                     radius = 900f
                 )
             )
             .background(
                 Brush.radialGradient(
-                    colors = listOf(
-                        AuthQX.QuantumTeal.copy(alpha = 0.09f),
-                        Color.Transparent
-                    ),
+                    listOf(A.Teal.copy(alpha = 0.10f), Color.Transparent),
                     center = Offset(0f, Float.POSITIVE_INFINITY),
                     radius = 700f
                 )
@@ -326,21 +288,21 @@ private fun AuthBackground(modifier: Modifier = Modifier) {
     )
 }
 
-// =========================================================
+// =====================================================================
 // LOGIN SCREEN
-// =========================================================
+// =====================================================================
 
 @Composable
 fun LoginScreen(
-    onLoginClick:    (username: String, password: String) -> Unit,
-    onSignupClick:   () -> Unit,
-    errorMessage:    String? = null
+    onLoginClick:  (username: String, password: String) -> Unit,
+    onSignupClick: () -> Unit,
+    errorMessage:  String? = null
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        AuthBackground()
+    Box(Modifier.fillMaxSize()) {
+        AuthBg()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -348,58 +310,48 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo
+            // Gradient logo
             Text(
                 "TurnIt",
-                style = authDisplay.copy(
+                style = aDisplay.copy(
                     brush = Brush.linearGradient(
-                        listOf(
-                            AuthQX.QuantumTeal,
-                            AuthQX.AuroraBlue,
-                            AuthQX.PurpleGlow
-                        )
+                        listOf(A.Teal, A.Blue, A.Purple)
                     )
                 )
             )
             Spacer(Modifier.height(4.dp))
-            Text(
-                "QUANTUM INTERFACE",
-                style = authLabel.copy(color = AuthQX.TextMuted)
-            )
+            Text("QUANTUM INTERFACE",
+                style = aLabel.copy(color = A.TextMuted))
             Spacer(Modifier.height(36.dp))
 
-            AuthCard(modifier = Modifier.fillMaxWidth()) {
+            AuthCard(Modifier.fillMaxWidth()) {
                 Column(
-                    modifier            = Modifier.fillMaxWidth(),
+                    Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text(
-                        "ACCESS NODE",
-                        style = authLabel.copy(color = AuthQX.QuantumTeal)
-                    )
-                    Spacer(Modifier.height(4.dp))
+                    Text("ACCESS NODE",
+                        style = aLabel.copy(color = A.Teal))
+                    Spacer(Modifier.height(2.dp))
                     NeonField(
-                        value         = username,
+                        value = username,
                         onValueChange = { username = it },
-                        placeholder   = "username"
+                        label = "username"
                     )
                     NeonField(
-                        value         = password,
+                        value = password,
                         onValueChange = { password = it },
-                        placeholder   = "password",
-                        keyboardType  = KeyboardType.Password,
-                        isPassword    = true
+                        label = "password",
+                        kb = KeyboardType.Password,
+                        isPassword = true
                     )
                     if (errorMessage != null) {
-                        Text(
-                            errorMessage,
-                            style = authLabel.copy(color = AuthQX.ErrorRed)
-                        )
+                        Text(errorMessage,
+                            style = aLabel.copy(color = A.ErrRed))
                     }
-                    Spacer(Modifier.height(8.dp))
-                    QuantumEntryButton(
-                        label   = "QUANTUM ENTRY",
+                    Spacer(Modifier.height(6.dp))
+                    QuantumButton(
+                        text    = "QUANTUM ENTRY",
                         onClick = {
                             onLoginClick(username.trim(), password)
                         },
@@ -407,12 +359,8 @@ fun LoginScreen(
                                   password.isNotBlank()
                     )
                     TextButton(onClick = onSignupClick) {
-                        Text(
-                            "New user? Initialize account",
-                            style = authBody.copy(
-                                color = AuthQX.AuroraBlue
-                            )
-                        )
+                        Text("New user? Initialize account",
+                            style = aBody.copy(color = A.Blue))
                     }
                 }
             }
@@ -420,28 +368,27 @@ fun LoginScreen(
     }
 }
 
-// =========================================================
+// =====================================================================
 // SIGNUP SCREEN
-// =========================================================
+// =====================================================================
 
 @Composable
 fun SignupScreen(
-    onSignupClick:  (username: String, email: String, password: String) -> Unit,
-    onLoginClick:   () -> Unit,
-    errorMessage:   String? = null
+    onSignupClick: (username: String, email: String, password: String) -> Unit,
+    onLoginClick:  () -> Unit,
+    errorMessage:  String? = null
 ) {
     var username by remember { mutableStateOf("") }
     var email    by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirm  by remember { mutableStateOf("") }
 
-    val passwordsMatch = password == confirm || confirm.isEmpty()
-    val allFilled      = username.isNotBlank() && email.isNotBlank() &&
-                         password.isNotBlank() && confirm.isNotBlank() &&
-                         passwordsMatch
+    val match    = password == confirm || confirm.isEmpty()
+    val canSubmit = username.isNotBlank() && email.isNotBlank() &&
+                    password.isNotBlank() && confirm.isNotBlank() && match
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        AuthBackground()
+    Box(Modifier.fillMaxSize()) {
+        AuthBg()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -451,74 +398,62 @@ fun SignupScreen(
         ) {
             Text(
                 "TurnIt",
-                style = authDisplay.copy(
+                style = aDisplay.copy(
                     brush = Brush.linearGradient(
-                        listOf(
-                            AuthQX.NeonGreen,
-                            AuthQX.AuroraBlue,
-                            AuthQX.PurpleGlow
-                        )
+                        listOf(A.NeonGreen, A.Blue, A.Purple)
                     )
                 )
             )
             Spacer(Modifier.height(4.dp))
-            Text(
-                "INITIALIZE ACCOUNT",
-                style = authLabel.copy(color = AuthQX.TextMuted)
-            )
+            Text("INITIALIZE ACCOUNT",
+                style = aLabel.copy(color = A.TextMuted))
             Spacer(Modifier.height(28.dp))
 
-            AuthCard(modifier = Modifier.fillMaxWidth()) {
+            AuthCard(Modifier.fillMaxWidth()) {
                 Column(
-                    modifier            = Modifier.fillMaxWidth(),
+                    Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        "NEW OPERATOR",
-                        style = authLabel.copy(color = AuthQX.QuantumTeal)
-                    )
+                    Text("NEW OPERATOR",
+                        style = aLabel.copy(color = A.Teal))
                     Spacer(Modifier.height(2.dp))
                     NeonField(
-                        value         = username,
+                        value = username,
                         onValueChange = { username = it },
-                        placeholder   = "username"
+                        label = "username"
                     )
                     NeonField(
-                        value         = email,
+                        value = email,
                         onValueChange = { email = it },
-                        placeholder   = "email address",
-                        keyboardType  = KeyboardType.Email
+                        label = "email address",
+                        kb = KeyboardType.Email
                     )
                     NeonField(
-                        value         = password,
+                        value = password,
                         onValueChange = { password = it },
-                        placeholder   = "password",
-                        keyboardType  = KeyboardType.Password,
-                        isPassword    = true
+                        label = "password",
+                        kb = KeyboardType.Password,
+                        isPassword = true
                     )
                     NeonField(
-                        value         = confirm,
+                        value = confirm,
                         onValueChange = { confirm = it },
-                        placeholder   = "confirm password",
-                        keyboardType  = KeyboardType.Password,
-                        isPassword    = true
+                        label = "confirm password",
+                        kb = KeyboardType.Password,
+                        isPassword = true
                     )
-                    if (!passwordsMatch) {
-                        Text(
-                            "Passwords do not match",
-                            style = authLabel.copy(color = AuthQX.ErrorRed)
-                        )
+                    if (!match) {
+                        Text("Passwords do not match",
+                            style = aLabel.copy(color = A.ErrRed))
                     }
                     if (errorMessage != null) {
-                        Text(
-                            errorMessage,
-                            style = authLabel.copy(color = AuthQX.ErrorRed)
-                        )
+                        Text(errorMessage,
+                            style = aLabel.copy(color = A.ErrRed))
                     }
-                    Spacer(Modifier.height(6.dp))
-                    QuantumEntryButton(
-                        label   = "ACTIVATE OPERATOR",
+                    Spacer(Modifier.height(4.dp))
+                    QuantumButton(
+                        text    = "ACTIVATE OPERATOR",
                         onClick = {
                             onSignupClick(
                                 username.trim(),
@@ -526,15 +461,11 @@ fun SignupScreen(
                                 password
                             )
                         },
-                        enabled = allFilled
+                        enabled = canSubmit
                     )
                     TextButton(onClick = onLoginClick) {
-                        Text(
-                            "Existing operator? Access node",
-                            style = authBody.copy(
-                                color = AuthQX.AuroraBlue
-                            )
-                        )
+                        Text("Existing operator? Access node",
+                            style = aBody.copy(color = A.Blue))
                     }
                 }
             }
