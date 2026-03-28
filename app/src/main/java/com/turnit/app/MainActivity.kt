@@ -3,6 +3,8 @@ package com.turnit.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.lifecycle.lifecycleScope
 import com.turnit.app.ui.*
@@ -12,7 +14,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var reqCtrl: RequestController
     private val messages = mutableStateListOf<Pair<String, Int>>()
     
-    // Logic for Login and Model Switching
     private var isLoggedIn by mutableStateOf(false)
     private var activeModel by mutableStateOf(QX_MODELS[0])
 
@@ -26,13 +27,16 @@ class MainActivity : ComponentActivity() {
         )
 
         setContent {
-            // This calls the theme defined in Theme.kt
             TurnItTheme {
-                Surface(color = MaterialTheme.colorScheme.background) {
+                // Surface provides the background color and ensures composable context
+                Surface(
+                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
                     if (!isLoggedIn) {
                         LoginScreen(
                             onLoginClick = { _, _ -> isLoggedIn = true },
-                            onSignupClick = { /* Link to signup if needed */ }
+                            onSignupClick = { /* Link to signup */ }
                         )
                     } else {
                         TurnItMainScreen(
