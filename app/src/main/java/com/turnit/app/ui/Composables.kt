@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -158,12 +159,9 @@ fun TurnItMainScreen(
             bottomBar = { NeonInputBar(onSend = onSend) }
         ) { pad ->
             NebulaBackground {
-                // The box fills the space ABOVE the bottomBar
                 Box(Modifier.padding(pad).fillMaxSize()) {
                     ChatList(messages)
 
-                    // MODIFIED: Padding changed from bottom=100.dp to bottom=8.dp
-                    // This aligns the floating button absolutely directly above the input box
                     Column(Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 8.dp), horizontalAlignment = Alignment.End) {
                         if (showModelMenu) {
                             Surface(Modifier.heightIn(max = 300.dp).width(200.dp).padding(bottom = 8.dp), color = QX.VoidBlack.copy(0.9f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, QX.GlassBorder)) {
@@ -209,6 +207,8 @@ fun NeonInputBar(onSend: (String) -> Unit) {
             placeholder = { Text("Message...") },
             colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
         )
-        IconButton(onClick = { onSend(text); text = "" }) { Icon(Icons.Default.Send, null, tint = QX.QuantumTeal) }
+        IconButton(onClick = { onSend(text); text = "" }) { 
+            Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = QX.QuantumTeal) 
+        }
     }
 }
