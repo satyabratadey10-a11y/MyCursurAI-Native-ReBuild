@@ -4,24 +4,45 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turnit.app.models.ModelOption
 import kotlinx.coroutines.launch
 
 object QX {
-    val VoidBlack = Color(0xFF0B0E14)
-    val QuantumTeal = Color(0xFF008080)
-    val GlassFill = Color(0x22FFFFFF)
-    val GlassBorder = Color(0x44FFFFFF)
-    val TextPrimary = Color(0xFFF0F4FF)
+    val VoidBlack      = Color(0xFF0B0E14)
+    val QuantumTeal    = Color(0xFF008080)
+    val PurpleGlow     = Color(0xFF7B4FBF)
+    val NeonRed        = Color(0xFFF87171)
+    val GlassFill      = Color(0x1AFFFFFF)
+    val GlassBorder    = Color(0x33FFFFFF)
+    val TextPrimary    = Color(0xFFF0F4FF)
+    val TextMuted      = Color(0xFF8A9BB5)
+}
+
+@Composable
+fun NebulaBackground(content: @Composable () -> Unit) {
+    val nebulaBrush = Brush.radialGradient(
+        colors = listOf(QX.PurpleGlow.copy(alpha = 0.15f), QX.QuantumTeal.copy(alpha = 0.05f), QX.VoidBlack),
+        center = Offset(0.7f, 0.2f),
+        radius = 1500f
+    )
+    Box(Modifier.fillMaxSize().background(nebulaBrush)) { content() }
 }
 
 @Composable
@@ -29,6 +50,85 @@ fun TurnItTheme(content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = darkColorScheme(background = QX.VoidBlack), content = content)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun QXTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    icon: Painter,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp).border(1.dp, QX.GlassBorder, RoundedCornerShape(24.dp)),
+        placeholder = { Text(label, color = QX.TextMuted) },
+        leadingIcon = { Icon(icon, null, tint = QX.QuantumTeal, modifier = Modifier.size(20.dp)) },
+        singleLine = true,
+        textStyle = TextStyle(color = QX.TextPrimary, fontSize = 16.sp),
+        visualTransformation = visualTransformation,
+        keyboardOptions = keyboardOptions,
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = QX.VoidBlack.copy(0.5f),
+            unfocusedContainerColor = Color.Transparent,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent
+        )
+    )
+}
+
+// RESTORING LOGIN UI (Image 8)
+@Composable
+fun LoginScreen(onLoginClick: (String, String) -> Unit, onSignupClick: () -> Unit) {
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    NebulaBackground {
+        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            // Profile Avatar Placeholder
+            Box(Modifier.size(100.dp).background(QX.GlassFill, CircleShape).border(1.dp, QX.QuantumTeal, CircleShape), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.Person, null, modifier = Modifier.size(60.dp), tint = QX.TextMuted)
+            }
+            Text("TurnIt-Native", modifier = Modifier.padding(top = 16.dp, bottom = 48.dp), color = QX.QuantumTeal, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+
+            // Missing Input Fields (Problem 1 Fix)
+            QXTextField(username, { username = it }, "Username", androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_search)) // Use proper icons in production
+            QXTextField(password, { password = it }, "Password", androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_secure), visualTransformation = PasswordVisualTransformation())
+
+            Button(onClick = { onLoginClick(username, password) }, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp).height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = QX.QuantumTeal), shape = RoundedCornerShape(25.dp)) {
+                Text("LOGIN", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            }
+            TextButton(onClick = onSignupClick) { Text("Create Account / Signup", color = QX.TextMuted) }
+        }
+    }
+}
+
+// RESTORING SIGNUP UI (Image 9)
+@Composable
+fun SignupScreen(onSignupClick: (String, String, String) -> Unit, onLoginClick: () -> Unit) {
+    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    NebulaBackground {
+        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text("Create Account", modifier = Modifier.padding(bottom = 48.dp), color = QX.TextPrimary, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+
+            QXTextField(username, { username = it }, "Username", androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_search))
+            QXTextField(email, { email = it }, "Email", androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_dialog_email))
+            QXTextField(password, { password = it }, "Password", androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_secure), visualTransformation = PasswordVisualTransformation())
+
+            Button(onClick = { onSignupClick(username, email, password) }, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp).height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = QX.QuantumTeal), shape = RoundedCornerShape(25.dp)) {
+                Text("Signup", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            }
+            TextButton(onClick = onLoginClick) { Text("Back to Login", color = QX.TextMuted) }
+        }
+    }
+}
+
+// TurnItMainScreen stays complex, ensuring the Model Selector is in the Red Box location.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TurnItMainScreen(
@@ -46,7 +146,7 @@ fun TurnItMainScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(drawerContainerColor = QX.VoidBlack) {
-                Text("TurnIt History", modifier = Modifier.padding(16.dp), color = QX.QuantumTeal)
+                Text("TurnIt History", modifier = Modifier.padding(16.dp), color = QX.QuantumTeal, style = MaterialTheme.typography.titleLarge)
                 NavigationDrawerItem(label = { Text("New Chat") }, selected = false, onClick = { onNewChat(); scope.launch { drawerState.close() } })
             }
         }
@@ -55,48 +155,31 @@ fun TurnItMainScreen(
             containerColor = QX.VoidBlack,
             topBar = {
                 TopAppBar(
-                    title = { Text("TurnIt", color = QX.QuantumTeal) },
+                    title = { Text("TurnIt", color = QX.QuantumTeal, fontWeight = FontWeight.Bold) },
                     navigationIcon = { IconButton(onClick = { scope.launch { drawerState.open() } }) { Icon(Icons.Default.Menu, null, tint = QX.QuantumTeal) } },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = QX.VoidBlack)
                 )
-            }
+            },
+            bottomBar = { NeonInputBar(onSend = onSend) }
         ) { pad ->
-            Box(Modifier.padding(pad).fillMaxSize()) {
-                LazyColumn(Modifier.fillMaxSize().padding(bottom = 90.dp)) {
-                    items(messages) { msg ->
-                        val isUser = msg.second == MSG_USER
-                        Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), contentAlignment = if(isUser) Alignment.CenterEnd else Alignment.CenterStart) {
-                            Surface(color = if(isUser) QX.QuantumTeal.copy(0.2f) else QX.GlassFill, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, QX.GlassBorder)) {
-                                Text(msg.first, modifier = Modifier.padding(12.dp), color = QX.TextPrimary)
-                            }
-                        }
-                    }
-                }
+            NebulaBackground {
+                Box(Modifier.padding(pad).fillMaxSize()) {
+                    ChatList(messages)
 
-                // FLOATING MODEL SELECTOR (RED BOX AREA)
-                Column(Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 90.dp), horizontalAlignment = Alignment.End) {
-                    if (showModelMenu) {
-                        Surface(Modifier.width(200.dp).padding(bottom = 8.dp), color = QX.VoidBlack, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, QX.GlassBorder)) {
-                            Column {
-                                QX_MODELS.forEach { model ->
-                                    TextButton(onClick = { onModelChange(model); showModelMenu = false }) {
-                                        Text(model.displayName, color = if(model == selectedModel) QX.QuantumTeal else QX.TextPrimary)
+                    // MODEL SELECTOR (RED BOX LOCATION FIXED)
+                    Column(Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 100.dp), horizontalAlignment = Alignment.End) {
+                        if (showModelMenu) {
+                            Surface(Modifier.heightIn(max = 300.dp).width(200.dp).padding(bottom = 8.dp), color = QX.VoidBlack.copy(0.9f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, QX.GlassBorder)) {
+                                LazyColumn {
+                                    items(QX_MODELS) { model ->
+                                        DropdownMenuItem(text = { Text(model.displayName, color = if(model == selectedModel) QX.QuantumTeal else QX.TextPrimary) }, onClick = { onModelChange(model); showModelMenu = false })
                                     }
                                 }
                             }
                         }
-                    }
-                    FloatingActionButton(onClick = { showModelMenu = !showModelMenu }, containerColor = QX.QuantumTeal, contentColor = Color.White, shape = CircleShape) {
-                        Text(selectedModel.shortLabel)
-                    }
-                }
-
-                // Input Bar
-                Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp), color = QX.GlassFill, shape = CircleShape, border = BorderStroke(1.dp, QX.QuantumTeal)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp)) {
-                        var text by remember { mutableStateOf("") }
-                        TextField(value = text, onValueChange = { text = it }, modifier = Modifier.weight(1f), colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent))
-                        IconButton(onClick = { onSend(text); text = "" }) { Icon(Icons.Default.Send, null, tint = QX.QuantumTeal) }
+                        FloatingActionButton(onClick = { showModelMenu = !showModelMenu }, containerColor = QX.QuantumTeal.copy(0.2f), contentColor = QX.QuantumTeal, shape = CircleShape, modifier = Modifier.border(1.dp, QX.QuantumTeal, CircleShape)) {
+                            Text(selectedModel.shortLabel)
+                        }
                     }
                 }
             }
@@ -105,17 +188,30 @@ fun TurnItMainScreen(
 }
 
 @Composable
-fun LoginScreen(onLoginClick: (String, String) -> Unit, onSignupClick: () -> Unit) {
-    Column(Modifier.fillMaxSize().background(QX.VoidBlack), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Button(onClick = { onLoginClick("admin", "pass") }) { Text("LOGIN TO TURNIT") }
-        TextButton(onClick = onSignupClick) { Text("Create Account", color = QX.QuantumTeal) }
+fun ChatList(messages: List<Pair<String, Int>>) {
+    val state = rememberLazyListState()
+    LazyColumn(state = state, modifier = Modifier.fillMaxSize().padding(bottom = 90.dp)) {
+        items(messages) { msg ->
+            val isUser = msg.second == MSG_USER
+            Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), contentAlignment = if(isUser) Alignment.CenterEnd else Alignment.CenterStart) {
+                Surface(color = if(isUser) QX.QuantumTeal.copy(0.2f) else QX.GlassFill, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, QX.GlassBorder)) {
+                    Text(msg.first, modifier = Modifier.padding(12.dp), color = QX.TextPrimary)
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun SignupScreen(onSignupClick: (String, String, String) -> Unit, onLoginClick: () -> Unit) {
-    Column(Modifier.fillMaxSize().background(QX.VoidBlack), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Button(onClick = { onSignupClick("user", "email", "pass") }) { Text("SIGN UP") }
-        TextButton(onClick = onLoginClick) { Text("Back to Login", color = QX.QuantumTeal) }
+fun NeonInputBar(onSend: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        TextField(
+            value = text, onValueChange = { text = it },
+            modifier = Modifier.weight(1f).background(QX.GlassFill, CircleShape).border(1.dp, QX.QuantumTeal, CircleShape).padding(horizontal = 8.dp),
+            placeholder = { Text("Message...") },
+            colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+        )
+        IconButton(onClick = { onSend(text); text = "" }) { Icon(Icons.Default.Send, null, tint = QX.QuantumTeal) }
     }
 }
