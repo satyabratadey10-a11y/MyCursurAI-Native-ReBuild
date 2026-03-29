@@ -57,7 +57,7 @@ jobs:
           TURSO_DB_URL: ${{ secrets.TURSO_DB_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
-          ./gradlew :app:assembleDebug \
+          ./gradlew :app:assembleRelease \
             --no-daemon --stacktrace \
             2>&1 | tee build_output.log
 
